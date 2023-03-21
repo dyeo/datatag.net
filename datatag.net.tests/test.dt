@@ -1,0 +1,13 @@
+tiles:
+{
+    a:
+    {
+        up:
+        [
+            [b 10 forward right]
+            [b 10 forward right]
+            [b 10 forward right]
+            [b 10 forward right]
+        ]
+    }
+}
