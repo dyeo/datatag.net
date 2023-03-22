@@ -4,13 +4,16 @@
     {
         public static void Main(string[] args)
         {
-            var result = Parser.Decode("test.dt");
-            var resultString = Parser.Encode(result, EncodeSettings.Pretty);
-            Console.WriteLine(resultString);
+            using (var fs = new StreamReader("test.dt"))
+            {
+                var result = Parser.Read(fs.ReadToEnd());
+                var resultString = Parser.Write(result, EncodeSettings.Pretty);
+                Console.WriteLine(resultString);
 
-            result = Parser.DecodeString(resultString);
-            resultString = Parser.Encode(result, EncodeSettings.Pretty);
-            Console.WriteLine(resultString);
+                result = Parser.Read(resultString);
+                resultString = Parser.Write(result, EncodeSettings.Pretty);
+                Console.WriteLine(resultString);
+            }
         }
     }
 }

@@ -106,80 +106,80 @@
 
         public bool Bool
         {
-            get => _value is bool value ? value : throw new InvalidCastException(ERR_NOT_TYPE<bool>());
+            get => Convert.ToBoolean(_value);
             set => _value = value;
-        }
-
-        public long Long
-        {
-            get => _value is long value ? value : throw new InvalidCastException(ERR_NOT_TYPE<long>());
-            set => _value = value;
-        }
-
-        public ulong ULong
-        {
-            get => _value is long value ? (ulong)value : throw new InvalidCastException(ERR_NOT_TYPE<ulong>());
-            set => _value = (long)value;
-        }
-
-        public int Int
-        {
-            get => _value is long value ? (int)value : throw new InvalidCastException(ERR_NOT_TYPE<int>());
-            set => _value = (long)value;
-        }
-
-        public uint UInt
-        {
-            get => _value is long value ? (uint)value : throw new InvalidCastException(ERR_NOT_TYPE<uint>());
-            set => _value = (long)value;
-        }
-
-        public short Short
-        {
-            get => _value is long value ? (short)value : throw new InvalidCastException(ERR_NOT_TYPE<short>());
-            set => _value = (long)value;
-        }
-
-        public ushort UShort
-        {
-            get => _value is long value ? (ushort)value : throw new InvalidCastException(ERR_NOT_TYPE<ushort>());
-            set => _value = (long)value;
         }
 
         public sbyte SByte
         {
-            get => _value is long value ? (sbyte)value : throw new InvalidCastException(ERR_NOT_TYPE<sbyte>());
+            get => Convert.ToSByte(_value);
             set => _value = (long)value;
         }
 
         public byte Byte
         {
-            get => _value is long value ? (byte)value : throw new InvalidCastException(ERR_NOT_TYPE<byte>());
+            get => Convert.ToByte(_value);
             set => _value = (long)value;
         }
 
-        public double Double
+        public short Short
         {
-            get => _value is double value ? value : throw new InvalidCastException(ERR_NOT_TYPE<double>());
+            get => Convert.ToInt16(_value);
+            set => _value = (long)value;
+        }
+
+        public ushort UShort
+        {
+            get => Convert.ToUInt16(_value);
+            set => _value = (long)value;
+        }
+
+        public int Int
+        {
+            get => Convert.ToInt32(_value);
+            set => _value = (long)value;
+        }
+
+        public uint UInt
+        {
+            get => Convert.ToUInt32(_value);
+            set => _value = (long)value;
+        }
+
+        public long Long
+        {
+            get => Convert.ToInt64(_value);
             set => _value = value;
+        }
+
+        public ulong ULong
+        {
+            get => Convert.ToUInt64(_value);
+            set => _value = (long)value;
         }
 
         public float Float
         {
-            get => _value is double value ? (float)value : throw new InvalidCastException(ERR_NOT_TYPE<float>());
+            get => Convert.ToSingle(_value);
             set => _value = (double)value;
         }
 
-        public string String
+        public double Double
         {
-            get => _value is string value ? value : throw new InvalidCastException(ERR_NOT_TYPE<string>());
+            get => Convert.ToDouble(_value);
             set => _value = value;
         }
 
         public char Char
         {
-            get => _value is string value ? value[0] : throw new InvalidCastException(ERR_NOT_TYPE<char>());
+            get => Convert.ToChar(_value);
             set => _value = value.ToString();
+        }
+
+        public string String
+        {
+            get => Convert.ToString(_value);
+            set => _value = value;
         }
 
         public TArray Array

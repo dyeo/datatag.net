@@ -4,7 +4,7 @@ namespace Datatag
     using System.Collections.Generic;
     using System.Linq;
 
-    internal static class StringE
+    internal static partial class StringE
     {
         internal static int IndexOf(this string str, string substring, int startIndex = 0)
         {

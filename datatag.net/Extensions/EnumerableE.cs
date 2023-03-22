@@ -2,7 +2,7 @@ namespace Datatag
 {
     using System.Collections.Generic;
 
-    public static class EnumerableE
+    internal static partial class EnumerableE
     {
         internal static IEnumerable<(int, T)> Enumerate<T>(this IEnumerable<T> input, int start = 0)
         {

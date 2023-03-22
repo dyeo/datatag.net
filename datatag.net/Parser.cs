@@ -1,10 +1,13 @@
 namespace Datatag
 {
     using System;
+    using System.Collections;
+    using System.Reflection;
     using System.Collections.Generic;
     using System.IO;
     using System.Text.RegularExpressions;
     using System.Globalization;
+    using System.Linq;
 
     public static class Parser
     {
@@ -22,47 +25,157 @@ namespace Datatag
         private const char TOK_COMMENT_START = ';';
         public static readonly Regex RX_KEYS = new Regex(@"^([_a-zA-Z0-9]+)");
 
-        public static Node Decode(string filepath)
+        public static Node Read(string input)
         {
-            using (var fileStream = new StreamReader(filepath))
-            {
-                return DecodeString(fileStream.ReadToEnd());
-            }
-        }
-
-        public static Node DecodeString(string input)
-        {
-            input = input.TrimStart();
+            input = ConsumeComment(input);
+            Node result;
             if (input.StartsWith(TOK_OBJECT_START.ToString()))
             {
-                ConsumeObject(input, out var root);
-                return root;
+                ConsumeObject(input, out result);
             }
             else if (input.StartsWith(TOK_ARRAY_START.ToString()))
             {
-                ConsumeArray(input, out var root);
-                return root;
+                ConsumeArray(input, out result);
             }
             else
             {
-                var root = Node.NewObject();
+                result = Node.NewObject();
                 while (input.Length > 0)
                 {
                     input = ConsumeKeyValuePair(input, out var key, out var node);
-                    root[key] = node;
+                    result[key] = node;
                     input = ConsumeComment(input);
                 }
-                return root;
             }
+            return result;
         }
 
-        public static string Encode(Node node)
-            => Encode(node, EncodeSettings.Compact, default);
+        public static Node ReadObject(object obj)
+        {
+            if (obj == null)
+            {
+                return new Node(null);
+            }
 
-        public static string Encode(Node node, EncodeSettings settings)
-            => Encode(node, settings, default);
+            if (obj is Node node)
+            {
+                return node;
+            }
 
-        private static string Encode(Node node, EncodeSettings settings, EncodeState existingState = null)
+            if (obj is IDatatagSerializable dts)
+            {
+                return dts.Serialize();
+            }
+
+            var type = obj.GetType();
+            switch (Type.GetTypeCode(type))
+            {
+                case TypeCode.Boolean: return new Node(Convert.ToBoolean(obj));
+
+                case TypeCode.SByte:
+                case TypeCode.Byte:
+                case TypeCode.Int16:
+                case TypeCode.UInt16:
+                case TypeCode.Int32:
+                case TypeCode.UInt32:
+                case TypeCode.Int64:
+                case TypeCode.UInt64: return new Node(Convert.ToInt64(obj));
+
+                case TypeCode.Single:
+                case TypeCode.Double: return new Node(Convert.ToDouble(obj));
+
+                case TypeCode.Char:
+                case TypeCode.String: return new Node(obj.ToString());
+
+                default: break;
+            }
+
+            if (type.IsEnum)
+            {
+                var values = Enum.GetValues(type);
+                var names = Enum.GetNames(type);
+                var i = 0;
+                foreach (var value in values)
+                {
+                    if (value.Equals(obj))
+                    {
+                        return new Node(names[i]);
+                    }
+                    i++;
+                }
+            }
+
+            Node result;
+            if (type.IsGenericType && typeof(IDictionary<,>).IsAssignableFrom(type.GetGenericTypeDefinition()) && type.GetGenericArguments()[0] == typeof(string))
+            {
+                result = Node.NewObject();
+
+                var keys = type.GetProperty("Keys").GetValue(obj) as IEnumerable<string>;
+                var values = (type.GetProperty("Values").GetValue(obj) as IEnumerable).GetEnumerator();
+
+                foreach (var key in keys)
+                {
+                    values.MoveNext();
+                    result.Add(key, ReadObject(values.Current));
+                }
+            }
+            else if (typeof(IEnumerable).IsAssignableFrom(type.GetGenericTypeDefinition()))
+            {
+                result = Node.NewArray();
+
+                var valueType = type.GetGenericArguments()[0];
+                var values = obj as IEnumerable;
+
+                foreach (var value in values)
+                {
+                    result.Add(ReadObject(value));
+                }
+            }
+            else
+            {
+                result = Node.NewObject();
+
+                var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.GetField)
+                                 .Where(f => (f.IsPublic && f.GetCustomAttribute<NonSerializedAttribute>(true) == null)
+                                          || f.GetCustomAttribute<SerializableAttribute>(true) != null
+                                          || f.FieldType.GetCustomAttribute<DatatagSerializableAttribute>(true) != null);
+                foreach ((string name, object field) in fields.Select(f => (f.Name, f.GetValue(obj))))
+                {
+                    result.Add(name, ReadObject(field));
+                }
+
+                var properties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.GetProperty)
+                                     .Where(p => (p.GetMethod.IsPublic && p.GetCustomAttribute<NonSerializedAttribute>(true) == null && p.GetMethod.GetCustomAttribute<NonSerializedAttribute>(true) == null)
+                                              || p.GetCustomAttribute<SerializableAttribute>(true) != null
+                                              || p.GetMethod.GetCustomAttribute<SerializableAttribute>(true) != null
+                                              || p.PropertyType.GetCustomAttribute<DatatagSerializableAttribute>(true) != null);
+                foreach ((string name, object field) in properties.Select(f => (f.Name, f.GetValue(obj))))
+                {
+                    result.Add(name, ReadObject(field));
+                }
+            }
+            return result;
+        }
+
+        public static string Write(Node node)
+            => Write(node, EncodeSettings.Compact, default);
+
+        public static string Write(Node node, EncodeSettings settings)
+            => Write(node, settings, default);
+
+        public static string Write<T>(T obj) where T : IDatatagSerializable
+            => Write(obj.Serialize(), EncodeSettings.Compact, default);
+
+        public static string Write<T>(T obj, EncodeSettings settings) where T : IDatatagSerializable
+            => Write(obj.Serialize(), settings, default);
+
+        public static string Write(object obj)
+            => Write(ReadObject(obj), EncodeSettings.Compact, default);
+
+        public static string Write(object obj, EncodeSettings settings)
+            => Write(ReadObject(obj), settings, default);
+
+        private static string Write(Node node, EncodeSettings settings, EncodeState existingState = null)
         {
             var state = existingState ?? new EncodeState();
             if (node == null)
@@ -109,7 +222,7 @@ namespace Datatag
                 var i = 0;
                 foreach (var elem in node.Array)
                 {
-                    result.Add(Encode(elem, settings, state));
+                    result.Add(Write(elem, settings, state));
                     result.Add(settings.ExpandArrays ? (i == node.Array.Count - 1 ? newline : newlinePlusOne) : elem.IsPrimitive && i < node.Array.Count - 1 ? " " : whitespace);
                     i++;
                 }
@@ -126,13 +239,29 @@ namespace Datatag
                     result.Add(pair.Key);
                     result.Add(TOK_KEY_SEPARATOR.ToString());
                     result.Add(whitespace);
-                    result.Add(Encode(pair.Value, settings, state));
+                    result.Add(Write(pair.Value, settings, state));
                     result.Add(settings.ExpandObjects ? newline : whitespace);
                 }
                 result.Add(TOK_OBJECT_END.ToString());
                 state.Nesting.RemoveAt(state.Nesting.Count - 1);
             }
             return string.Join(string.Empty, result);
+        }
+
+        public static void WriteObject(object obj, Node value)
+        {
+            if (obj == null || obj is Node node)
+            {
+                return;
+            }
+
+            if (obj is IDatatagSerializable dts)
+            {
+                dts.Deserialize(value);
+                return;
+            }
+
+            // TODO(dy): THE REST OF THIS FUNCTION
         }
 
         private static string ConsumeToken(string input, char token, bool consumeWhitespaceBefore = true, bool consumeWhitespaceAfter = true)
