@@ -1,7 +1,10 @@
-namespace Datatag;
-
-public class InvalidSyntaxException : Exception
+namespace Datatag
 {
-    public InvalidSyntaxException() : base(null) { }
-    public InvalidSyntaxException(string? message) : base(message) { }
+    using System;
+    
+    public class InvalidSyntaxException : Exception
+    {
+        public InvalidSyntaxException() : base(null) { }
+        public InvalidSyntaxException(string message) : base(message) { }
+    }
 }

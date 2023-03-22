@@ -1,16 +1,16 @@
-namespace Datatag;
-
-using System.Collections.Generic;
-using System.Linq;
-
-public static class EnumerableE
+namespace Datatag
 {
-    internal static IEnumerable<(int, T)> Enumerate<T>(this IEnumerable<T> input, int start = 0)
+    using System.Collections.Generic;
+
+    public static class EnumerableE
     {
-        int i = start;
-        foreach (var t in input)
+        internal static IEnumerable<(int, T)> Enumerate<T>(this IEnumerable<T> input, int start = 0)
         {
-            yield return (i++, t);
+            int i = start;
+            foreach (var t in input)
+            {
+                yield return (i++, t);
+            }
         }
     }
 }

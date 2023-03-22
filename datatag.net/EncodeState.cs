@@ -1,17 +1,15 @@
-namespace Datatag;
-
-public struct EncodeState
+namespace Datatag
 {
-    public enum NestingType
-    {
-        Object,
-        Array
-    }
+    using System.Collections.Generic;
 
-    public List<NestingType> Nesting;
-
-    public EncodeState()
+    public class EncodeState
     {
-        Nesting = new();
+        public enum NestingType
+        {
+            Object,
+            Array
+        }
+
+        public List<NestingType> Nesting = new List<NestingType>();
     }
 }
